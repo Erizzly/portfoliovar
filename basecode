@@ -1,0 +1,41 @@
+from yahoo_fin import stock_info as si
+import pandas_datareader as pdr
+from datetime import datetime
+import pandas as pd
+from pandas import DataFrame
+import numpy as np
+
+#open textfile with portfolio names, loop through it to create a list
+run = []
+f = open('pvnames.txt')
+for i in f:
+    word = i.rstrip()
+    run.append(word)
+#Initialize a dataframe using the first name in the protfolio, (still a manualish process)
+#creates a series of monthly returns
+sym = 'T'
+W = pdr.get_data_yahoo(symbols=sym, start=datetime(2016, 7, 1), end=datetime(2020, 7, 1), interval = 'm')
+P = W['Adj Close'].pct_change()
+df = P.to_frame(name = 'T')
+#loop through the 'run' list to add other series to the dataframe
+for i in run:
+    sym = i
+    W = pdr.get_data_yahoo(symbols=sym, start=datetime(2016, 7, 1), end=datetime(2020, 7, 1), interval = 'm')
+    P = W['Adj Close'].pct_change()
+    df2 = P.to_frame(name = sym)
+    df = pd.concat([df,df2], axis =1)
+
+#create covaraince matrix using monthly returns
+cov_mon = df.cov()
+
+#loops through the portfolio weights (weighted by margin impact)
+portfolio_weights = []
+f = open('pvweights.txt')
+for i in f:
+    word = i.rstrip()
+    word = float(word)
+    portfolio_weights.append(word) 
+portfolio_weights = np.array(portfolio_weights)
+# Calculate the portfolio standard deviation
+portfolio_volatility = np.sqrt(np.dot(portfolio_weights.T, np.dot(cov_mon, portfolio_weights)))
+print("The monthly portfolio volatility is: %f" % portfolio_volatility)
